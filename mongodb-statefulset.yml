@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  serviceName: "mongo-service"
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      role: mongo
+  template:
+    metadata:
+      labels:
+        role: mongo
+        environment: test
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: mongo
+          image: ds7000/mongo_db:latest
+          imagePullPolicy: "Always"
+          command:
+            - mongod
+            - "--replSet"
+            - rs0
+            - "--bind_ip"
+            - "0.0.0.0"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-volume
+              mountPath: /mnt/data
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "0.25"
+            limits:
+              memory: "512Mi"
+              cpu: "0.5"
+        - name: mongo-s
+          image: cvallance/mongo-k8s-s
+          env:
+            - name: MONGO_S_POD
+              value:
+              - "role=mongo"
+              - "environment=test"
+
+#--------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+spec:
+  selector:
+    role: mongo
+  clusterIP: None
+  ports:
+    - port: 27017
+      targetPort: 27017
+      name: mongodb

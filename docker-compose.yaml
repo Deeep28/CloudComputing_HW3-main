@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+
+  db:
+    build: ./mongodb
+    container_name: mongo_db
+    image: mongo_db:latest
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: camp2016
+      MONGODB_DATA_DIR: /data/db
+      MONGODB_LOG_DIR: /dev/null
+    volumes:
+      - mongodbdata:/data/db
+    networks:
+      - backend
+    ports:
+      - 27017:27017
+
+  todoapp:
+    build: ./webapp
+    container_name: Todo_Webapp
+    image: webapp:latest
+    restart: unless-stopped
+    environment:
+      MONGO_SERVICE_SERVICE_HOST: db
+      MONGO_SERVICE_SERVICE_PORT: 27017
+      FLASK_ENV: development
+      PORT: 5000
+    volumes:
+      - ./webapp:/app
+    depends_on:
+      - db
+    ports:
+      - 5000:5000
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongodbdata:
+    driver: local
+  webapp:
+    driver: local
